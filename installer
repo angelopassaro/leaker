@@ -1,0 +1,27 @@
+#!/bin/bash
+
+pip3 install emailfinder
+
+# Fix fonts for emailfinder
+sudo wget http://www.figlet.org/fonts/cosmic.flf -O /usr/share/figlet/cosmic.flf
+sudo wget http://www.figlet.org/fonts/epic.flf -O /usr/share/figlet/epic.flf
+sudo wget http://www.figlet.org/fonts/speed.flf -O /usr/share/figlet/speed.flf
+sudo wget http://www.figlet.org/fonts/graffiti.flf -O /usr/share/figlet/graffiti.flf
+
+
+
+
+sudo git clone https://github.com/rix4uni/EmailFinder.git /opt/EmailFinder
+cd /opt/EmailFinder
+sudo rm -rf Emails
+sudo chmod +x email_finder.sh
+sudo ln -s /opt/EmailFinder/email_finder.sh /usr/local/bin/email_finder
+
+
+
+sudo git clone https://github.com/JoelGMSec/LeakSearch /opt/LeakSearch 
+cd /opt/LeakSearch 
+python3 -m pip install -r requirements
+sudo chmod +x LeakSearch.py 
+sudo mv /opt/LeakSearch/LeakSearch.py  /usr/local/bin/LeakSearch 
+sudo rm -rf /opt/LeakSearch 
