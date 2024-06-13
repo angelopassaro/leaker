@@ -10,6 +10,13 @@ NC='\033[0m'
 emails_tmp=$(pwd)/emails.tmp
 emails=$(pwd)/emails.txt
 leaked=$(pwd)/leaked.txt
+dork_tmp=$(pwd)/dork_tmp
+result=$(pwd)/result.txt
+result_google=$(pwd)/google_dork.txt
+postman=$(pwd)/postman.txt
+swagger=$(pwd)/swagger.txt
+
+
 
 
 echo -e "${CYAN} __       _______     ___       __  ___  _______ .______      ${NC}";
@@ -39,20 +46,85 @@ fi
 domain=$1
 interactions=$2
 
-echo -e "${YELLOW}[-] Start email enumeration${NC}"
-for _ in {1..$interactions};
-do
-    sleep 5
-    emailfinder -d $domain | grep "@" | grep -v "Author"  >> $emails_tmp
-    emailfinder -d $(echo $domain |cut -d "." -f1 ) | grep "@" | grep -v "Author"  >> $emails_tmp
+email(){
+  echo -e "${YELLOW}[-] Start email enumeration${NC}"
+  for _ in {1..$interactions};
+  do
+      sleep 5
+      emailfinder -d $domain | grep "@" | grep -v "Author"  >> $emails_tmp
+      emailfinder -d $(echo $domain |cut -d "." -f1 ) | grep "@" | grep -v "Author"  >> $emails_tmp
+  done
 
-done
+  email_finder $domain >> $emails_tmp
+  sort -u $emails_tmp > $emails
+  rm $emails_tmp
+  if [ ! -s $emails ];then
+    echo -e "${GREEN}[-] Email enumeration completed.${NC}${RED}No results${NC}"
+  else
+    echo -e "${GREEN}[+] Email enumeration completed. Result saved in:${NC} ${CYAN}$emails${NC}"
+  fi
+}
 
-email_finder $domain >> $emails_tmp
-sort -u $emails_tmp > $emails
-rm $emails_tmp
-echo -e "${GREEN}[+] Email enumeration completed. Result saved in:${NC} ${CYAN}$emails${NC}"
+cred_leak(){
+  echo -e "${YELLOW}[-] Search for leaked credentials${NC}"
+  LeakSearch -k $domain -n 1000 > $leaked
+  if [ ! -s $leaked ];then
+    echo -e "${GREEN}[+] Search for leaked credentials completed.${NC}${RED}No results${NC}"
+  else
+    echo -e "${GREEN}[+] Search for leaked credentials completed. Result saved in:${NC} ${CYAN}$leaked${NC}"
+  fi
+}
 
-echo -e "${YELLOW}[-] Search for leaked credentials${NC}"
-LeakSearch -k $domain -n 1000 > $leaked
-echo -e "${GREEN}[+] Searching for leaked credentials completed. Result saved in:${NC} ${CYAN}$leaked${NC}"
+
+shodan_dork(){
+  echo -e "${YELLOW}[-] Search for leaked info${NC}"
+  cat dork.txt | sed "s/PLACEHOLDER/$domain/g" > $dork_tmp   
+
+  while IFS= read -r line;
+  do
+      line_no_space=$(echo $line | tr -d '[:blank:]')
+      shodan download --fields ip_str,port,data $line_no_space "$line" >/dev/null
+      sleep 5
+      if [ -n "$(zcat "$line_no_space.json.gz" | head -c 1 | tr '\0\n' __)" ]; then
+          zcat "$line_no_space.json.gz" | jq .data | perl -MHTML::Entities -pe 'decode_entities($_);' 2>/dev/null > $result
+      else
+          rm "$line_no_space.json.gz"
+      fi
+  done  < $dork_tmp
+
+  rm $dork_tmp
+  if [ ! -s $result ];then
+    echo -e "${GREEN}[+] Search for leaked info completed.${NC}${RED}No Results${NC}"
+  else
+    echo -e "${GREEN}[+] Search for leaked info completed. Result saved in:${NC}${CYAN}$result${NC}"
+  fi
+}
+
+
+google_dork() {
+  echo -e "${YELLOW}[-] Search for google dork${NC}"
+  dorks_hunter.py -d $domain -o osint/dorks.txt  | grep -v "#" > $result_google
+  if [ ! -s $result_google ];then
+    echo -e "${GREEN}[+] Search for google dork completed${NC}${RED}No Results${NC}"
+  else
+    echo -e "${GREEN}[+] Search for google dork completed. Result saved in:${NC}${CYAN}$result_google${NC}"
+  fi
+}
+
+api_leak(){
+  echo -e "${YELLOW}[-] Search for leaked in API${NC}"
+  porch-pirate -s "$domain" --dump >$postman 
+  swaggerspy.py $domain | grep -i "[*]\|URL" >$swagger
+  if [ ! -s $postman ] && [ ! - $swagger ];then
+    echo -e "${GREEN}[+] Search for leaked in API completed${NC}${RED}No Results${NC}"
+  else
+    echo -e "${GREEN}[+] Search for leaked in API completed. Result saved in:${NC}${CYAN}$postman${NC}and${CYAN}$swagger${NC}"
+  fi
+}
+
+
+email
+cred_leak
+shodan_dork
+google_dork
+api_leak
