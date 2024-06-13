@@ -15,6 +15,7 @@ result=$(pwd)/result.txt
 result_google=$(pwd)/google_dork.txt
 postman=$(pwd)/postman.txt
 swagger=$(pwd)/swagger.txt
+secrets=$(pwd)/secrets.txt
 
 
 
@@ -77,19 +78,19 @@ cred_leak(){
 
 
 shodan_dork(){
+  partial_domain=$(echo $domain |cut -d "." -f1)
   echo -e "${YELLOW}[-] Search for leaked info${NC}"
-  cat dork.txt | sed "s/PLACEHOLDER/$domain/g" > $dork_tmp   
+  cat dork.txt | sed "s/PLACEHOLDER/$partial_domain/g" > $dork_tmp   
 
   while IFS= read -r line;
   do
       line_no_space=$(echo $line | tr -d '[:blank:]')
       shodan download --fields ip_str,port,data $line_no_space "$line" >/dev/null
       sleep 5
-      if [ -n "$(zcat "$line_no_space.json.gz" | head -c 1 | tr '\0\n' __)" ]; then
-          zcat "$line_no_space.json.gz" | jq .data | perl -MHTML::Entities -pe 'decode_entities($_);' 2>/dev/null > $result
-      else
-          rm "$line_no_space.json.gz"
+      if [ ! -n "$(zcat "$line_no_space.json.gz" | head -c 1 | tr '\0\n' __)" ]; then
+          rm "$line_no_space.json.gz"     
       fi
+        zcat *.gz | jq .data | perl -MHTML::Entities -pe 'decode_entities($_);' 2>/dev/null > $result
   done  < $dork_tmp
 
   rm $dork_tmp
@@ -103,7 +104,7 @@ shodan_dork(){
 
 google_dork() {
   echo -e "${YELLOW}[-] Search for google dork${NC}"
-  dorks_hunter.py -d $domain -o osint/dorks.txt  | grep -v "#" > $result_google
+  dorks_hunter.py -d $domain | grep -v "#" > $result_google
   if [ ! -s $result_google ];then
     echo -e "${GREEN}[+] Search for google dork completed${NC}${RED}No Results${NC}"
   else
@@ -123,8 +124,30 @@ api_leak(){
 }
 
 
+trufflehog_check() {
+  echo -e "${YELLOW}[-] Search for secret ${NC}"
+  if [ -s $result ];then
+    trufflehog filesystem $(zcat *.gz) 2>/dev/null >> $secrets
+  fi
+  if [ -s $postman ];then
+    trufflehog filesystem $postman 2>/dev/null >> $secrets
+  fi
+  if [ -s $swagger ];then
+    trufflehog filesystem $swagger 2>/dev/null >>  $secrets
+  fi
+
+  if [ ! -s $secret ];then
+    echo -e "${GREEN}[+] Search for secret completed${NC}${RED}No Results${NC}"
+  else
+    echo -e "${GREEN}[+] Search for secret completed. Result saved in:${NC}${CYAN}$secrets${NC}"
+  fi
+
+}
+
+
 email
 cred_leak
 shodan_dork
 google_dork
 api_leak
+trufflehog_check
