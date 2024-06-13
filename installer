@@ -25,3 +25,24 @@ python3 -m pip install -r requirements
 sudo chmod +x LeakSearch.py 
 sudo mv /opt/LeakSearch/LeakSearch.py  /usr/local/bin/LeakSearch 
 sudo rm -rf /opt/LeakSearch 
+
+
+pip3 install shodan
+
+python3 -m pip install porch-pirate
+
+sudo git clone https://github.com/UndeadSec/SwaggerSpy.git /opt/SwaggerSpy
+cd SwaggerSpy
+python3 -m pip install -r requirements.txt
+sudo chmod +x swaggerspy.py
+sudo mv swaggerspy.py /usr/local/bin/
+sudo rm -rf /opt/SwaggerSpy
+
+
+
+sudo git clone https://github.com/six2dez/dorks_hunter /opt/dorks_hunter
+cd dorks_hunter
+python3 -m pip install -r requirements.txt
+chmod +x dorks_hunter.py
+sudo mv dorks_hunter.py /usr/local/bin/dorks_hunter.py
+sudo rm -rf /opt/dorks_hunter
