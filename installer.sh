@@ -46,3 +46,9 @@ python3 -m pip install -r requirements.txt
 chmod +x dorks_hunter.py
 sudo mv dorks_hunter.py /usr/local/bin/dorks_hunter.py
 sudo rm -rf /opt/dorks_hunter
+
+
+git clone https://github.com/trufflesecurity/trufflehog.git
+cd trufflehog
+go install
+sudo mv ~/go/bin/trufflehog /usr/local/bin
