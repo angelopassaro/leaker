@@ -90,8 +90,9 @@ shodan_dork(){
       if [ ! -n "$(zcat "$line_no_space.json.gz" | head -c 1 | tr '\0\n' __)" ]; then
           rm "$line_no_space.json.gz"     
       fi
-        zcat *.gz | jq .data | perl -MHTML::Entities -pe 'decode_entities($_);' 2>/dev/null > $result
   done  < $dork_tmp
+
+  zcat *.gz | jq .data | perl -MHTML::Entities -pe 'decode_entities($_);' 2>/dev/null > $result
 
   rm $dork_tmp
   if [ ! -s $result ];then
